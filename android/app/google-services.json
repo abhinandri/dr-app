@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "60602478316",
+    "project_id": "drapp-aed21",
+    "storage_bucket": "drapp-aed21.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:60602478316:android:3d42032fe08eb19aeaffc9",
+        "android_client_info": {
+          "package_name": "com.example.dr_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBqDIROCzLIfYuihJbiCkwL0YBxSG1UpBY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
