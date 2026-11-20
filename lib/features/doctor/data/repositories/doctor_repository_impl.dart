@@ -105,14 +105,62 @@ class DoctorRepositoryImpl implements DoctorRepository {
   }
 
   @override
-  Future<void> updateAppointmentStatus({
-    required String appointmentId,
-    required String status,
-  }) async {
-    await firestore.collection('appointments').doc(appointmentId).update({
-      'status': status,
-    });
+Future<Map<String, dynamic>> getAppointmentById(
+  String appointmentId,
+) async {
+  final doc = await firestore
+      .collection('appointments')
+      .doc(appointmentId)
+      .get();
+
+  if (!doc.exists) {
+    throw Exception('Appointment not found');
   }
+
+  return {
+    'id': doc.id,
+    ...doc.data()!,
+  };
+}
+
+@override
+Future<void> updateAppointmentStatus({
+  required String appointmentId,
+  required String status,
+}) async {
+  final appointmentRef =
+      firestore.collection('appointments').doc(appointmentId);
+
+  await firestore.runTransaction((transaction) async {
+    final snapshot = await transaction.get(appointmentRef);
+
+    if (!snapshot.exists) {
+      throw Exception('Appointment not found');
+    }
+
+    final data = snapshot.data()!;
+    final currentStatus = data['status'];
+
+    // Prevent changing an appointment that has already been rejected
+    // or cancelled.
+    if (currentStatus == 'rejected' ||
+        currentStatus == 'cancelled') {
+      throw Exception('This appointment is already closed');
+    }
+
+    final updates = <String, dynamic>{
+      'status': status,
+    };
+
+    // A doctor rejection may require a refund if payment was received.
+    if (status == 'rejected' &&
+        data['paymentStatus'] == 'paid') {
+      updates['refundStatus'] = 'pending';
+    }
+
+    transaction.update(appointmentRef, updates);
+  });
+}
 
   @override
   Future<Map<String, dynamic>> getUserDetails(String uid) async {

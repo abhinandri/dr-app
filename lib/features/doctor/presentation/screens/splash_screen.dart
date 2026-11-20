@@ -1,4 +1,5 @@
 
+import 'package:dr_app/core/services/notification_service.dart';
 import 'package:dr_app/features/doctor/presentation/screens/dr_main_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -207,9 +208,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         break;
     }
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => destination),
-    );
+   Navigator.pushReplacement(
+  context,
+  MaterialPageRoute(builder: (_) => destination),
+);
+
+if (route == SplashRoute.dashboard) {
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    NotificationService.openPendingAppointment();
+  });
+}
   }
 }

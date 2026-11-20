@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:dr_app/features/doctor/domain/repositories/doctor_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -59,6 +62,39 @@ Future<void> loadAppointments(String doctorId) async {
       appointmentId: appointmentId,
       status: status,
     );
+
+    // Send notification to patient
+try {
+  final client = HttpClient();
+
+  try {
+    final uri = Uri.parse(
+      'http://192.168.1.3:3000/notify-patient',
+    );
+
+    final request = await client.postUrl(uri);
+
+    request.headers.set(
+      HttpHeaders.contentTypeHeader,
+      'application/json',
+    );
+
+    request.write(jsonEncode({
+      'appointmentId': appointmentId,
+    }));
+
+    final response = await request.close();
+
+if (response.statusCode == 200) {
+  print('Patient notification sent successfully.');
+} else {
+  print('Patient notification failed: ${response.statusCode}');
+}  } finally {
+    client.close();
+  }
+} catch (e) {
+  print('Patient notification error: $e');
+}
 
 
     final currentState = state.value;

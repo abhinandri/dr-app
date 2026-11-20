@@ -90,4 +90,52 @@ class CloudinaryService {
   }
 }
 
+
+static Future<String?> uploadPrescription(PlatformFile file) async {
+  try {
+    final uri = Uri.parse(
+      'https://api.cloudinary.com/v1_1/$cloudName/raw/upload',
+    );
+
+    final request = http.MultipartRequest('POST', uri);
+
+    request.fields['upload_preset'] = uploadPreset;
+    request.fields['folder'] = 'prescriptions';
+
+    if (file.bytes != null) {
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'file',
+          file.bytes!,
+          filename: file.name,
+        ),
+      );
+    } else if (file.path != null) {
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'file',
+          file.path!,
+          filename: file.name,
+        ),
+      );
+    } else {
+      return null;
+    }
+
+    final response = await request.send();
+    final responseBody = await response.stream.bytesToString();
+
+    if (response.statusCode == 200) {
+      final data = json.decode(responseBody);
+      return data['secure_url'] as String?;
+    }
+
+    debugPrint('Prescription upload failed: $responseBody');
+    return null;
+  } catch (e) {
+    debugPrint('Prescription upload error: $e');
+    return null;
+  }
+}
+
 }

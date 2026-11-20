@@ -30,7 +30,7 @@ class DoctorModel extends DoctorEntity {
       'id': id,
       'name': name,
       'email': email,
-      'specialization': specialization,
+      'specialization': specialization, 
       'licenseNumber': licenseNumber,
       'phone': phone,
       'experience': experience,

@@ -1,5 +1,6 @@
 import 'package:dr_app/features/doctor/presentation/controllers/providers/dr_nav_provider.dart';
 import 'package:dr_app/features/doctor/presentation/screens/appointment/doctor_appointments_screen.dart';
+import 'package:dr_app/features/doctor/presentation/screens/chat/chat_list_screen.dart';
 import 'package:dr_app/features/doctor/presentation/screens/doctor_profile_screen.dart';
 import 'package:dr_app/features/doctor/presentation/screens/dr_slot_screen.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +18,7 @@ class DoctorMainScreen extends ConsumerWidget {
     final pages = [
       const DashboardScreen(),
       const DoctorAppointmentsScreen(),
+      const DoctorChatListScreen(),
       const DoctorSlotScreen(),
       const DoctorProfileScreen(),
     ];
@@ -37,9 +39,12 @@ class DoctorMainScreen extends ConsumerWidget {
             label: "Home",
           ),
              BottomNavigationBarItem(
-    icon: Icon(Icons.calendar_month),
-    label: "Appointments",
-  ),
+            icon: Icon(Icons.calendar_month),
+            label: "Appointments",
+          ),
+          BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline),
+            label: 'Chat',
+          ),
           BottomNavigationBarItem(
             icon: Icon(Icons.access_time),
             label: "Slots",

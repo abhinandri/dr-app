@@ -21,6 +21,10 @@ abstract class DoctorRepository {
   Future<List<Map<String, dynamic>>> getDoctorAppointments(
       String doctorId);
 
+      Future<Map<String, dynamic>> getAppointmentById(
+  String appointmentId,
+);
+
 
   Future<void> updateAppointmentStatus({
     required String appointmentId,

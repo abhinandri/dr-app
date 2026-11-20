@@ -101,7 +101,13 @@
 //   }
 // }
 import 'package:dr_app/core/theme/app_colors.dart';
+import 'package:dr_app/core/utils/date_utils.dart';
+import 'package:dr_app/core/utils/time_utils.dart';
 import 'package:dr_app/features/doctor/presentation/controllers/providers/appointment_provider.dart';
+import 'package:dr_app/features/doctor/presentation/screens/appointment/prescription_upload_screen.dart';
+import 'package:dr_app/features/doctor/presentation/screens/call/audio_call_screen.dart';
+import 'package:dr_app/features/doctor/presentation/screens/chat/chat_screen.dart';
+import 'package:dr_app/features/doctor/presentation/screens/call/video_call_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -115,9 +121,10 @@ class AppointmentDetailsScreen extends ConsumerWidget {
 
   Color _statusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'confirmed':
+      case 'pending':
         return const Color(0xFFE8A317);
       case 'accepted':
+      case 'confirmed':
         return const Color(0xFF1E9E6B);
       case 'rejected':
         return AppColors.error;
@@ -132,18 +139,34 @@ class AppointmentDetailsScreen extends ConsumerWidget {
     if (name.trim().isEmpty) return '?';
     final parts = name.trim().split(RegExp(r'\s+'));
     final first = parts.first.isNotEmpty ? parts.first[0] : '';
-    final last =
-        parts.length > 1 && parts.last.isNotEmpty ? parts.last[0] : '';
+    final last = parts.length > 1 && parts.last.isNotEmpty ? parts.last[0] : '';
     return (first + last).toUpperCase();
   }
 
+  
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final String userName = appointment['userName'] ?? 'Unknown';
-    final String userEmail = appointment['userEmail'] ?? '';
-    final String date = appointment['date'] ?? '';
-    final String time = appointment['time'] ?? '';
-    final String status = (appointment['status'] ?? '').toString();
+
+final appointmentsState = ref.watch(doctorAppointmentProvider);
+
+final currentAppointment = appointmentsState.when(
+  data: (appointments) {
+    return appointments.firstWhere(
+      (item) => item['id'] == appointment['id'],
+      orElse: () => appointment,
+    );
+  },
+  loading: () => appointment,
+  error: (_, __) => appointment,
+);
+
+
+    final String userName = currentAppointment['userName'] ?? 'Unknown';
+final String userEmail = currentAppointment['userEmail'] ?? '';
+final String date = currentAppointment['date'] ?? '';
+final String time = currentAppointment['time'] ?? '';
+final String status =(currentAppointment['status'] ?? '').toString().toLowerCase();
     final statusColor = _statusColor(status);
     final statusLabel = status.isEmpty
         ? 'Unknown'
@@ -180,8 +203,8 @@ class AppointmentDetailsScreen extends ConsumerWidget {
                   _SectionLabel(label: 'Schedule'),
                   const SizedBox(height: 12),
                   _ScheduleCard(
-                    date: date,
-                    time: time,
+                    date: DateFormatter.formatDate(date),
+                    time: formatToAmPm(time),
                     statusLabel: statusLabel,
                     statusColor: statusColor,
                   ),
@@ -189,7 +212,9 @@ class AppointmentDetailsScreen extends ConsumerWidget {
                   const SizedBox(height: 28),
                   _SectionLabel(label: 'More'),
                   const SizedBox(height: 12),
-                  _MoreFeaturesCard(),
+                  _MoreFeaturesCard(  
+                    appointment: currentAppointment,
+                  ),
 
                   // Breathing room so content never sits under the
                   // floating action bar.
@@ -205,11 +230,12 @@ class AppointmentDetailsScreen extends ConsumerWidget {
       //  FLOATING ACCEPT / REJECT BAR
       //  (same logic as before — always available)
       // ══════════════════════════════════════
-      bottomNavigationBar: _ActionBar(
+      bottomNavigationBar:status=='pending'
+      ? _ActionBar( 
         onAccept: () {
           ref.read(doctorAppointmentProvider.notifier).updateStatus(
                 appointmentId: appointment['id'],
-                status: 'accepted',
+                status: 'confirmed',
               );
         },
         onReject: () {
@@ -218,7 +244,7 @@ class AppointmentDetailsScreen extends ConsumerWidget {
                 status: 'rejected',
               );
         },
-      ),
+      ):null,
     );
   }
 }
@@ -506,7 +532,7 @@ class _ScheduleCard extends StatelessWidget {
           ),
           _timelineRow(
             icon: Icons.access_time_filled_rounded,
-            label: 'Time',
+            label: formatToAmPm(time),
             value: time.isEmpty ? '—' : time,
             iconColor: AppColors.primaryStart,
           ),
@@ -606,6 +632,12 @@ class _ScheduleCard extends StatelessWidget {
 //  intent (Chat / Video / Audio / Prescription to be added later).
 // ════════════════════════════════════════════════════════════
 class _MoreFeaturesCard extends StatelessWidget {
+  final Map<String, dynamic> appointment;
+
+  const _MoreFeaturesCard({
+    required this.appointment,
+  });
+
   static const _features = [
     (Icons.chat_bubble_rounded, 'Chat'),
     (Icons.videocam_rounded, 'Video Call'),
@@ -634,9 +666,66 @@ class _MoreFeaturesCard extends StatelessWidget {
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         mainAxisSpacing: 6,
-        children: _features
-            .map((f) => _FeatureTile(icon: f.$1, label: f.$2))
-            .toList(),
+        children: [
+          _FeatureTile(
+            icon: Icons.chat_bubble_rounded,
+            label: 'Chat',
+            showSoon: false,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ChatScreen(
+                    chatId: appointment['id'],
+                    userId: appointment['userId'],
+                    userName: appointment['userName'] ?? 'Patient',
+                  ),
+                ),
+              );
+            },
+          ),
+          _FeatureTile(
+            icon: Icons.videocam_rounded,
+            label: 'Video Call',
+            showSoon: false,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => VideoCallScreen(
+                    appointment:  appointment['id'],
+                  ),
+                ),
+              );
+            },
+          ), 
+          _FeatureTile(
+            onTap: () { 
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) =>
+                          AudioCallScreen(appointmentId: appointment['id'])));
+            },
+            icon: Icons.call_rounded,
+            label: 'Audio Call',
+          ),
+       _FeatureTile(
+  icon: Icons.description_rounded,
+  label: 'Prescription',
+  showSoon: false,
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PrescriptionUploadScreen(
+          appointment: appointment,
+        ),
+      ),
+    );
+  },
+),
+        ],
       ),
     );
   }
@@ -645,64 +734,55 @@ class _MoreFeaturesCard extends StatelessWidget {
 class _FeatureTile extends StatelessWidget {
   final IconData icon;
   final String label;
+  final VoidCallback? onTap;
+  final bool showSoon;
 
-  const _FeatureTile({required this.icon, required this.label});
+  const _FeatureTile(
+      {required this.icon,
+      required this.label,
+      this.onTap,
+      this.showSoon = true});
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              height: 46,
-              width: 46,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppColors.primaryStart.withOpacity(0.10),
-                    AppColors.primaryEnd.withOpacity(0.10),
-                  ],
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                height: 46,
+                width: 46,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.primaryStart.withOpacity(0.10),
+                      AppColors.primaryEnd.withOpacity(0.10),
+                    ],
+                  ),
+                  shape: BoxShape.circle,
                 ),
-                shape: BoxShape.circle,
+                child: Icon(icon, size: 20, color: AppColors.primaryStart),
               ),
-              child: Icon(icon, size: 20, color: AppColors.primaryStart),
-            ),
-            const SizedBox(height: 7),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 10.5,
-                fontWeight: FontWeight.w600,
-                color: AppColors.subtext,
+              const SizedBox(height: 7),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.subtext,
+                ),
               ),
-            ),
-          ],
-        ),
-        Positioned(
-          top: 0,
-          right: 6,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF2A93B),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: const Text(
-              'SOON',
-              style: TextStyle(
-                fontSize: 7.5,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-                letterSpacing: 0.3,
-              ),
-            ),
+            ],
           ),
-        ),
-      ],
+          
+        ],
+      ),
     );
   }
 }
@@ -746,20 +826,40 @@ class _ActionBar extends StatelessWidget {
                     borderRadius: BorderRadius.circular(14),
                   ),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Icons.close_rounded, size: 19),
-                    SizedBox(width: 7),
-                    Text(
-                      'Reject',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ],
-                ),
+                
+child: const Row(
+  mainAxisAlignment: MainAxisAlignment.center,
+  children: const [
+    Icon(Icons.close_rounded, size: 18),
+    SizedBox(width: 5),
+    Flexible(
+      child: Text(
+        'Reject',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: 14,
+        ),
+      ),
+    ),
+  ],
+)
+
+                // child: Row(
+                //   mainAxisAlignment: MainAxisAlignment.center,
+                //   children: const [
+                //     Icon(Icons.close_rounded, size: 19),
+                //     SizedBox(width: 7),
+                //     Text(
+                //       'Reject',
+                //       style: TextStyle(
+                //         fontWeight: FontWeight.w700,
+                //         fontSize: 15,
+                //       ),
+                //     ),
+                //   ],
+                // ),
               ),
             ),
           ),

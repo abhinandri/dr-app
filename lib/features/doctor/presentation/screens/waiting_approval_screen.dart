@@ -69,7 +69,7 @@ class _WaitingApprovalScreenState extends ConsumerState<WaitingApprovalScreen>
             if (status == 'approved') {
               Navigator.pushAndRemoveUntil(
                 context,
-                MaterialPageRoute(builder: (_) => const DashboardScreen()),
+                MaterialPageRoute(builder: (_) =>  DashboardScreen()),
                 (_) => false,
               );
             } else if (status == 'rejected') {

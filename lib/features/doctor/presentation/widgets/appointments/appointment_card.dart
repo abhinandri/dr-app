@@ -1,120 +1,7 @@
-// import 'package:flutter/material.dart';
-
-// class AppointmentCard extends StatelessWidget {
-//   final Map<String, dynamic> appointment;
-//   final VoidCallback onAccept;
-//   final VoidCallback onReject;
-//   final VoidCallback? onTap;
-
-//   const AppointmentCard({
-//     super.key,
-//     required this.appointment,
-//     required this.onAccept,
-//     required this.onReject,
-//     this.onTap,
-//   });
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return GestureDetector(
-//       onTap: onTap,
-//       child: Card(
-//         margin: const EdgeInsets.only(bottom: 16),
-//         elevation: 3,
-//         shape: RoundedRectangleBorder(
-//           AborderRadius: BorderRadius.circular(16),
-//         ),
-//         child: Padding(
-//           padding: const EdgeInsets.all(16),
-//           child: Column(
-//             crossAxisAlignment: CrossAxisAlignment.start,
-//             children: [
-//               const Text(
-//                 "Patient",
-//                 style: TextStyle(
-//                   color: Colors.grey,
-//                 ),
-//               ),
-//               const SizedBox(height: 4),
-//               Text(
-//                 appointment['userName'] ?? 'Unknown',
-//                 style: const TextStyle(
-//                   fontSize: 16,
-//                   fontWeight: FontWeight.bold,
-//                 ),
-//               ),
-//               const SizedBox(height: 12),
-//               Row(
-//                 children: [
-//                   const Icon(
-//                     Icons.calendar_today,
-//                     size: 18,
-//                   ),
-//                   const SizedBox(width: 8),
-//                   Text(
-//                     appointment['date'] ?? '',
-//                   ),
-//                 ],
-//               ),
-//               const SizedBox(height: 8),
-//               Row(
-//                 children: [
-//                   const Icon(
-//                     Icons.access_time,
-//                     size: 18,
-//                   ),
-//                   const SizedBox(width: 8),
-//                   Text(
-//                     appointment['time'] ?? '',
-//                   ),
-//                 ],
-//               ),
-//               const SizedBox(height: 12),
-//               Text(
-//                 "Status: ${appointment['status']}",
-//                 style: TextStyle(
-//                   color: appointment['status'] == 'confirmed'
-//                       ? Colors.orange
-//                       : Colors.green,
-//                   fontWeight: FontWeight.bold,
-//                 ),
-//               ),
-//               const SizedBox(height: 16),
-//               if (appointment['status'] == 'confirmed')
-//                 Row(
-//                   children: [
-//                     Expanded(
-//                       child: ElevatedButton(
-//                         onPressed: onAccept,
-//                         child: const Text(
-//                           "Accept",
-//                         ),
-//                       ),
-//                     ),
-//                     const SizedBox(width: 12),
-//                     Expanded(
-//                       child: ElevatedButton(
-//                         style: ElevatedButton.styleFrom(
-//                           backgroundColor: Colors.red,
-//                         ),
-//                         onPressed: onReject,
-//                         child: const Text(
-//                           "Reject",
-//                         ),
-//                       ),
-//                     ),
-//                   ],
-//                 )
-//             ],
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
 
 import 'package:dr_app/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:dr_app/core/utils/time_utils.dart';
 
 class AppointmentCard extends StatelessWidget {
   final Map<String, dynamic> appointment;
@@ -129,34 +16,44 @@ class AppointmentCard extends StatelessWidget {
 
   // ── Status → gradient + icon ──
   List<Color> _statusGradient(String status) {
-    switch (status.toLowerCase()) {
-      case 'confirmed':
-        return const [Color(0xFFF2AF3D), Color(0xFFE8A317)]; // amber — awaiting action
-      case 'accepted':
-        return const [Color(0xFF34C58E), Color(0xFF1E9E6B)]; // clinical green
-      case 'rejected':
-        return [AppColors.error.withOpacity(0.85), AppColors.error];
-      case 'completed':
-        return [AppColors.primaryStart, AppColors.primaryEnd];
-      default:
-        return const [Color(0xFFB3BAC6), Color(0xFF98A1B0)];
-    }
-  }
+  switch (status.toLowerCase()) {
+    case 'pending':
+      return const [Color(0xFFF2AF3D), Color(0xFFE8A317)];
 
-  IconData _statusIcon(String status) {
-    switch (status.toLowerCase()) {
-      case 'confirmed':
-        return Icons.hourglass_top_rounded;
-      case 'accepted':
-        return Icons.check_circle_rounded;
-      case 'rejected':
-        return Icons.cancel_rounded;
-      case 'completed':
-        return Icons.task_alt_rounded;
-      default:
-        return Icons.help_outline_rounded;
-    }
+    case 'confirmed':
+    case 'accepted':
+      return const [Color(0xFF34C58E), Color(0xFF1E9E6B)];
+
+    case 'rejected':
+      return [AppColors.error.withOpacity(0.85), AppColors.error];
+
+    case 'completed':
+      return [AppColors.primaryStart, AppColors.primaryEnd];
+
+    default:
+      return const [Color(0xFFB3BAC6), Color(0xFF98A1B0)];
   }
+}
+
+IconData _statusIcon(String status) {
+  switch (status.toLowerCase()) {
+    case 'pending':
+      return Icons.hourglass_top_rounded;
+
+    case 'confirmed':
+    case 'accepted':
+      return Icons.check_circle_rounded;
+
+    case 'rejected':
+      return Icons.cancel_rounded;
+
+    case 'completed':
+      return Icons.task_alt_rounded;
+
+    default:
+      return Icons.help_outline_rounded;
+  }
+}
 
   DateTime? _tryParseDate(String date) {
     try {
@@ -192,8 +89,13 @@ class AppointmentCard extends StatelessWidget {
     final String time = appointment['time'] ?? '';
     final String status = (appointment['status'] ?? '').toString();
     final gradient = _statusGradient(status);
-    final statusLabel =
-        status.isEmpty ? 'Unknown' : status[0].toUpperCase() + status.substring(1);
+   final statusLabel = switch (status.toLowerCase()) {
+  'confirmed' || 'accepted' => 'Accepted',
+  'pending' => 'Pending',
+  'rejected' => 'Rejected',
+  'completed' => 'Completed',
+  _ => 'Unknown',
+};
 
     return Material(
       color: Colors.transparent,
@@ -329,7 +231,7 @@ class AppointmentCard extends StatelessWidget {
                     Expanded(
                       child: _InfoPill(
                         icon: Icons.access_time_rounded,
-                        label: time,
+                        label: formatToAmPm(time),
                       ),
                     ),
                   ],

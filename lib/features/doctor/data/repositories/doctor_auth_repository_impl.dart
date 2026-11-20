@@ -1,7 +1,9 @@
 
+import 'package:dr_app/core/services/notification_service.dart';
 import 'package:dr_app/features/doctor/presentation/controllers/notifiers/splash_controller.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../domain/repositories/doctor_auth_repository.dart';
 
 class DoctorAuthRepositoryImpl implements DoctorAuthRepository {
@@ -132,6 +134,12 @@ class DoctorAuthRepositoryImpl implements DoctorAuthRepository {
     }
 
     // ✅ Only approved doctors reach here
+
+    final token = await FirebaseMessaging.instance.getToken();
+
+if (token != null) {
+  await NotificationService.saveToken(token);
+}
   }
 
   @override
